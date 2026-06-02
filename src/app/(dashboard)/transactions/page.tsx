@@ -1,0 +1,320 @@
+"use client"
+import { useState, useEffect } from 'react'
+import { Plus, ArrowLeftRight, Trash2, Loader2, ArrowDownLeft, ArrowUpRight } from 'lucide-react'
+import { useApi } from '@/hooks/useApi'
+import { transactions as txApi, comptes as comptesApi, categories as catApi } from '@/lib/api'
+import { formatMontant, formatDate } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { EmptyState } from '@/components/shared/EmptyState'
+import { toast } from '@/components/ui/use-toast'
+import type { Compte, Categorie, Transaction } from '@/types'
+
+function TransactionDialog({
+  open,
+  onClose,
+  onSave,
+}: {
+  open: boolean
+  onClose: () => void
+  onSave: () => void
+}) {
+  const [comptes, setComptes] = useState<Compte[]>([])
+  const [categories, setCategories] = useState<Categorie[]>([])
+  const [compteId, setCompteId] = useState('')
+  const [categorieId, setCategorieId] = useState('')
+  const [montant, setMontant] = useState('')
+  const [type, setType] = useState<'ENTREE' | 'SORTIE'>('SORTIE')
+  const [sourcePaiement, setSourcePaiement] = useState('')
+  const [description, setDescription] = useState('')
+  const [dateTransaction, setDateTransaction] = useState(new Date().toISOString().split('T')[0])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (open) {
+      comptesApi.lister().then(setComptes).catch(() => setComptes([]))
+      catApi.lister().then(setCategories).catch(() => setCategories([]))
+    }
+  }, [open])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      await txApi.creer({
+        compteId,
+        categorieId: categorieId || undefined,
+        montant: parseFloat(montant),
+        type,
+        sourcePaiement,
+        description,
+        dateTransaction: new Date(dateTransaction).toISOString(),
+      })
+      toast({ title: 'Transaction créée', type: 'success' })
+      onSave()
+      onClose()
+    } catch (err) {
+      toast({ title: 'Erreur', description: err instanceof Error ? err.message : 'Erreur', type: 'error' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Nouvelle transaction</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <div className="flex gap-2">
+                {(['ENTREE', 'SORTIE'] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setType(t)}
+                    className={`flex-1 rounded-lg border py-2 text-xs font-medium transition-colors ${
+                      type === t
+                        ? t === 'ENTREE'
+                          ? 'border-emerald-600 bg-emerald-900/40 text-emerald-300'
+                          : 'border-red-600 bg-red-900/40 text-red-300'
+                        : 'border-slate-600 text-slate-400 hover:border-slate-500'
+                    }`}
+                  >
+                    {t === 'ENTREE' ? 'Entrée' : 'Sortie'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Montant</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={montant}
+                onChange={(e) => setMontant(e.target.value)}
+                placeholder="0.00"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Compte</Label>
+            <select
+              value={compteId}
+              onChange={(e) => setCompteId(e.target.value)}
+              required
+              className="flex h-10 w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Sélectionner un compte</option>
+              {comptes.map((c) => (
+                <option key={c.id} value={c.id}>{c.nom}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Catégorie</Label>
+            <select
+              value={categorieId}
+              onChange={(e) => setCategorieId(e.target.value)}
+              className="flex h-10 w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Sans catégorie</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.nom}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Source de paiement</Label>
+            <Input
+              value={sourcePaiement}
+              onChange={(e) => setSourcePaiement(e.target.value)}
+              placeholder="Ex: Virement, Espèces…"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Description (optionnel)</Label>
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Description de la transaction"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Date</Label>
+            <Input
+              type="date"
+              value={dateTransaction}
+              onChange={(e) => setDateTransaction(e.target.value)}
+              required
+            />
+          </div>
+
+          <DialogFooter className="mt-4 gap-2">
+            <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Créer'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+export default function TransactionsPage() {
+  const { data: transactions, loading, refetch } = useApi(() => txApi.lister())
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [filterType, setFilterType] = useState<'TOUS' | 'ENTREE' | 'SORTIE'>('TOUS')
+  const [search, setSearch] = useState('')
+  const [deleting, setDeleting] = useState<string | null>(null)
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Supprimer cette transaction ?')) return
+    setDeleting(id)
+    try {
+      await txApi.supprimer(id)
+      toast({ title: 'Transaction supprimée', type: 'success' })
+      refetch()
+    } catch (err) {
+      toast({ title: 'Erreur', description: err instanceof Error ? err.message : 'Erreur', type: 'error' })
+    } finally {
+      setDeleting(null)
+    }
+  }
+
+  const filtered = (transactions ?? []).filter((t: Transaction) => {
+    if (filterType !== 'TOUS' && t.type !== filterType) return false
+    if (search && !`${t.description ?? ''} ${t.sourcePaiement} ${t.categorieNom ?? ''}`.toLowerCase().includes(search.toLowerCase())) return false
+    return true
+  }).sort((a: Transaction, b: Transaction) => new Date(b.dateTransaction).getTime() - new Date(a.dateTransaction).getTime())
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-100">Transactions</h2>
+          <p className="text-slate-400 text-sm mt-1">{filtered.length} transaction(s)</p>
+        </div>
+        <Button onClick={() => setDialogOpen(true)}>
+          <Plus className="h-4 w-4" />
+          Nouvelle transaction
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <Input
+          placeholder="Rechercher…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-64"
+        />
+        <div className="flex gap-2">
+          {(['TOUS', 'ENTREE', 'SORTIE'] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilterType(f)}
+              className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+                filterType === f
+                  ? 'border-blue-600 bg-blue-900/40 text-blue-300'
+                  : 'border-slate-600 text-slate-400 hover:border-slate-500 hover:text-slate-300'
+              }`}
+            >
+              {f === 'TOUS' ? 'Toutes' : f === 'ENTREE' ? 'Entrées' : 'Sorties'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <LoadingSpinner fullPage />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={ArrowLeftRight}
+          title="Aucune transaction"
+          description="Aucune transaction ne correspond à vos filtres"
+          action={
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="h-4 w-4" /> Nouvelle transaction
+            </Button>
+          }
+        />
+      ) : (
+        <div className="rounded-xl border border-slate-700 bg-[#1E293B] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-700 bg-slate-800/50">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Date</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Description</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide hidden sm:table-cell">Catégorie</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide hidden md:table-cell">Source</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Montant</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Type</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-700/50">
+                {filtered.map((tx: Transaction) => (
+                  <tr key={tx.id} className="hover:bg-slate-700/30 transition-colors">
+                    <td className="px-4 py-3 text-slate-300 whitespace-nowrap">{formatDate(tx.dateTransaction)}</td>
+                    <td className="px-4 py-3 text-slate-100 max-w-[200px] truncate">
+                      {tx.description || tx.sourcePaiement}
+                    </td>
+                    <td className="px-4 py-3 text-slate-400 hidden sm:table-cell">
+                      {tx.categorieNom ?? <span className="italic">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-slate-400 hidden md:table-cell">{tx.sourcePaiement}</td>
+                    <td className={`px-4 py-3 text-right font-semibold whitespace-nowrap ${tx.type === 'ENTREE' ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {tx.type === 'ENTREE' ? '+' : '-'}{formatMontant(tx.montant)}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <Badge variant={tx.type === 'ENTREE' ? 'success' : 'destructive'} className="gap-1">
+                        {tx.type === 'ENTREE'
+                          ? <ArrowDownLeft className="h-3 w-3" />
+                          : <ArrowUpRight className="h-3 w-3" />
+                        }
+                        {tx.type === 'ENTREE' ? 'Entrée' : 'Sortie'}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleDelete(tx.id)}
+                        disabled={deleting === tx.id}
+                        className="p-1.5 rounded text-slate-500 hover:text-red-400 hover:bg-slate-700 transition-colors disabled:opacity-50"
+                      >
+                        {deleting === tx.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <TransactionDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onSave={refetch}
+      />
+    </div>
+  )
+}
