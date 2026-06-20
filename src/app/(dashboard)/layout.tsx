@@ -1,23 +1,16 @@
 "use client"
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, startTransition } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
 import { Toaster } from '@/components/ui/toaster'
 import { alertes as alertesApi } from '@/lib/api'
-
-const pageTitles: Record<string, string> = {
-  '/dashboard': 'Tableau de bord',
-  '/comptes': 'Comptes',
-  '/transactions': 'Transactions',
-  '/categories': 'Catégories',
-  '/budgets': 'Budgets',
-  '/alertes': 'Alertes',
-}
+import { useTranslation } from '@/contexts/LanguageContext'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
+  const { t } = useTranslation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [alertesNonLues, setAlertesNonLues] = useState(0)
   const [authChecked, setAuthChecked] = useState(false)
@@ -27,15 +20,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!token) {
       router.replace('/login')
     } else {
-      setAuthChecked(true)
+      startTransition(() => setAuthChecked(true))
     }
+  }, [router])
+
+  useEffect(() => {
+    const handleAuthExpired = () => router.replace('/login')
+    window.addEventListener('auth:expired', handleAuthExpired)
+    return () => window.removeEventListener('auth:expired', handleAuthExpired)
   }, [router])
 
   const loadAlertes = useCallback(async () => {
     try {
       const data = await alertesApi.lister()
       if (Array.isArray(data)) {
-        setAlertesNonLues(data.filter((a) => !a.lue).length)
+        startTransition(() => setAlertesNonLues(data.filter((a) => !a.lue).length))
       }
     } catch {
       // ignore
@@ -43,21 +42,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [])
 
   useEffect(() => {
-    if (authChecked) loadAlertes()
+    if (authChecked) { void loadAlertes() }
   }, [authChecked, pathname, loadAlertes])
 
   if (!authChecked) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#0F172A]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-600 border-t-blue-500" />
+      <div className="flex h-screen items-center justify-center" style={{ background: '#06091b' }}>
+        <div className="h-8 w-8 animate-spin rounded-full border-2" style={{ borderColor: 'rgba(82,113,255,0.2)', borderTopColor: '#5271ff' }} />
       </div>
     )
   }
 
-  const title = pageTitles[pathname] ?? 'Gestion Financière'
+  const pageTitles: Record<string, string> = {
+    '/dashboard': t('page.dashboard'),
+    '/comptes': t('page.accounts'),
+    '/transactions': t('page.transactions'),
+    '/categories': t('page.categories'),
+    '/budgets': t('page.budgets'),
+    '/alertes': t('page.alerts'),
+  }
+
+  const title = pageTitles[pathname] ?? t('app.name')
 
   return (
-    <div className="flex h-screen bg-[#0F172A] overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={{ background: '#06091b' }}>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -85,7 +93,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           alertesNonLues={alertesNonLues}
           onMenuClick={() => setSidebarOpen(true)}
         />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-6" style={{ background: 'radial-gradient(ellipse at 30% 20%, rgba(82,113,255,0.05) 0%, transparent 60%), radial-gradient(ellipse at 80% 80%, rgba(124,95,255,0.04) 0%, transparent 60%), #06091b' }}>
           {children}
         </main>
       </div>

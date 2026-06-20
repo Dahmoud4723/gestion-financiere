@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 
 export const metadata: Metadata = {
   title: "Gestion Financière",
@@ -15,9 +16,9 @@ export default function RootLayout({
     <html lang="fr" className="h-full">
       <body
         className="min-h-full"
-        style={{ background: "#0F172A", color: "#F8FAFC", fontFamily: "system-ui, -apple-system, sans-serif" }}
+        style={{ background: "#06091b", color: "#e2e8f8", fontFamily: "'Inter', 'Noto Sans Arabic', system-ui, -apple-system, sans-serif" }}
       >
-        {children}
+        <LanguageProvider>{children}</LanguageProvider>
       </body>
     </html>
   );

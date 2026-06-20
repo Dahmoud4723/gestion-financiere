@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { toast } from '@/components/ui/use-toast'
+import { useTranslation } from '@/contexts/LanguageContext'
 import type { Compte, Categorie, Transaction } from '@/types'
 
 function TransactionDialog({
@@ -23,6 +24,7 @@ function TransactionDialog({
   onClose: () => void
   onSave: () => void
 }) {
+  const { t } = useTranslation()
   const [comptes, setComptes] = useState<Compte[]>([])
   const [categories, setCategories] = useState<Categorie[]>([])
   const [compteId, setCompteId] = useState('')
@@ -54,11 +56,11 @@ function TransactionDialog({
         description,
         dateTransaction: new Date(dateTransaction).toISOString(),
       })
-      toast({ title: 'Transaction créée', type: 'success' })
+      toast({ title: t('transactions.created_toast'), type: 'success' })
       onSave()
       onClose()
     } catch (err) {
-      toast({ title: 'Erreur', description: err instanceof Error ? err.message : 'Erreur', type: 'error' })
+      toast({ title: t('common.error'), description: err instanceof Error ? err.message : t('common.unknown_error'), type: 'error' })
     } finally {
       setLoading(false)
     }
@@ -68,33 +70,33 @@ function TransactionDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Nouvelle transaction</DialogTitle>
+          <DialogTitle>{t('transactions.form_title')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label>Type</Label>
+              <Label>{t('common.type')}</Label>
               <div className="flex gap-2">
-                {(['ENTREE', 'SORTIE'] as const).map((t) => (
+                {(['ENTREE', 'SORTIE'] as const).map((tp) => (
                   <button
-                    key={t}
+                    key={tp}
                     type="button"
-                    onClick={() => setType(t)}
+                    onClick={() => setType(tp)}
                     className={`flex-1 rounded-lg border py-2 text-xs font-medium transition-colors ${
-                      type === t
-                        ? t === 'ENTREE'
+                      type === tp
+                        ? tp === 'ENTREE'
                           ? 'border-emerald-600 bg-emerald-900/40 text-emerald-300'
                           : 'border-red-600 bg-red-900/40 text-red-300'
                         : 'border-slate-600 text-slate-400 hover:border-slate-500'
                     }`}
                   >
-                    {t === 'ENTREE' ? 'Entrée' : 'Sortie'}
+                    {tp === 'ENTREE' ? t('transactions.type.ENTREE') : t('transactions.type.SORTIE')}
                   </button>
                 ))}
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Montant</Label>
+              <Label>{t('common.amount')}</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -108,14 +110,14 @@ function TransactionDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Compte</Label>
+            <Label>{t('nav.accounts')}</Label>
             <select
               value={compteId}
               onChange={(e) => setCompteId(e.target.value)}
               required
-              className="flex h-10 w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex h-10 w-full rounded-xl border border-slate-700/60 bg-slate-900/60 px-3.5 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 transition-all"
             >
-              <option value="">Sélectionner un compte</option>
+              <option value="">{t('transactions.account_select')}</option>
               {comptes.map((c) => (
                 <option key={c.id} value={c.id}>{c.nom}</option>
               ))}
@@ -123,13 +125,13 @@ function TransactionDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Catégorie</Label>
+            <Label>{t('common.category')}</Label>
             <select
               value={categorieId}
               onChange={(e) => setCategorieId(e.target.value)}
-              className="flex h-10 w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex h-10 w-full rounded-xl border border-slate-700/60 bg-slate-900/60 px-3.5 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 transition-all"
             >
-              <option value="">Sans catégorie</option>
+              <option value="">{t('transactions.category_select')}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>{c.nom}</option>
               ))}
@@ -137,26 +139,26 @@ function TransactionDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Source de paiement</Label>
+            <Label>{t('transactions.source_label')}</Label>
             <Input
               value={sourcePaiement}
               onChange={(e) => setSourcePaiement(e.target.value)}
-              placeholder="Ex: Virement, Espèces…"
+              placeholder={t('transactions.source_placeholder')}
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Description (optionnel)</Label>
+            <Label>{t('transactions.desc_label')}</Label>
             <Input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Description de la transaction"
+              placeholder={t('transactions.desc_placeholder')}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Date</Label>
+            <Label>{t('common.date')}</Label>
             <Input
               type="date"
               value={dateTransaction}
@@ -166,9 +168,9 @@ function TransactionDialog({
           </div>
 
           <DialogFooter className="mt-4 gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>Annuler</Button>
+            <Button type="button" variant="outline" onClick={onClose}>{t('common.cancel')}</Button>
             <Button type="submit" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Créer'}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('common.create')}
             </Button>
           </DialogFooter>
         </form>
@@ -178,6 +180,7 @@ function TransactionDialog({
 }
 
 export default function TransactionsPage() {
+  const { t } = useTranslation()
   const { data: transactions, loading, refetch } = useApi(() => txApi.lister())
   const [dialogOpen, setDialogOpen] = useState(false)
   const [filterType, setFilterType] = useState<'TOUS' | 'ENTREE' | 'SORTIE'>('TOUS')
@@ -185,22 +188,22 @@ export default function TransactionsPage() {
   const [deleting, setDeleting] = useState<string | null>(null)
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Supprimer cette transaction ?')) return
+    if (!confirm(t('transactions.delete_confirm'))) return
     setDeleting(id)
     try {
       await txApi.supprimer(id)
-      toast({ title: 'Transaction supprimée', type: 'success' })
+      toast({ title: t('transactions.deleted_toast'), type: 'success' })
       refetch()
     } catch (err) {
-      toast({ title: 'Erreur', description: err instanceof Error ? err.message : 'Erreur', type: 'error' })
+      toast({ title: t('common.error'), description: err instanceof Error ? err.message : t('common.unknown_error'), type: 'error' })
     } finally {
       setDeleting(null)
     }
   }
 
-  const filtered = (transactions ?? []).filter((t: Transaction) => {
-    if (filterType !== 'TOUS' && t.type !== filterType) return false
-    if (search && !`${t.description ?? ''} ${t.sourcePaiement} ${t.categorieNom ?? ''}`.toLowerCase().includes(search.toLowerCase())) return false
+  const filtered = (transactions ?? []).filter((tx: Transaction) => {
+    if (filterType !== 'TOUS' && tx.type !== filterType) return false
+    if (search && !`${tx.description ?? ''} ${tx.sourcePaiement} ${tx.categorieNom ?? ''}`.toLowerCase().includes(search.toLowerCase())) return false
     return true
   }).sort((a: Transaction, b: Transaction) => new Date(b.dateTransaction).getTime() - new Date(a.dateTransaction).getTime())
 
@@ -208,19 +211,19 @@ export default function TransactionsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-100">Transactions</h2>
-          <p className="text-slate-400 text-sm mt-1">{filtered.length} transaction(s)</p>
+          <h2 className="text-2xl font-bold gradient-text">{t('transactions.title')}</h2>
+          <p className="text-slate-400 text-sm mt-1">{t('transactions.count', filtered.length)}</p>
         </div>
         <Button onClick={() => setDialogOpen(true)}>
           <Plus className="h-4 w-4" />
-          Nouvelle transaction
+          {t('transactions.new')}
         </Button>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <Input
-          placeholder="Rechercher…"
+          placeholder={t('common.search')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-64"
@@ -236,7 +239,7 @@ export default function TransactionsPage() {
                   : 'border-slate-600 text-slate-400 hover:border-slate-500 hover:text-slate-300'
               }`}
             >
-              {f === 'TOUS' ? 'Toutes' : f === 'ENTREE' ? 'Entrées' : 'Sorties'}
+              {f === 'TOUS' ? t('transactions.type.all') : f === 'ENTREE' ? t('transactions.type.ENTREE') : t('transactions.type.SORTIE')}
             </button>
           ))}
         </div>
@@ -247,26 +250,26 @@ export default function TransactionsPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={ArrowLeftRight}
-          title="Aucune transaction"
-          description="Aucune transaction ne correspond à vos filtres"
+          title={t('transactions.empty_title')}
+          description={t('transactions.empty_desc')}
           action={
             <Button onClick={() => setDialogOpen(true)}>
-              <Plus className="h-4 w-4" /> Nouvelle transaction
+              <Plus className="h-4 w-4" /> {t('transactions.new')}
             </Button>
           }
         />
       ) : (
-        <div className="rounded-xl border border-slate-700 bg-[#1E293B] overflow-hidden">
+        <div className="card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-700 bg-slate-800/50">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Date</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Description</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide hidden sm:table-cell">Catégorie</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide hidden md:table-cell">Source</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Montant</th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Type</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('common.date')}</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('common.description')}</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide hidden sm:table-cell">{t('common.category')}</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide hidden md:table-cell">{t('common.source')}</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('common.amount')}</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('common.type')}</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
@@ -290,7 +293,7 @@ export default function TransactionsPage() {
                           ? <ArrowDownLeft className="h-3 w-3" />
                           : <ArrowUpRight className="h-3 w-3" />
                         }
-                        {tx.type === 'ENTREE' ? 'Entrée' : 'Sortie'}
+                        {tx.type === 'ENTREE' ? t('transactions.type.ENTREE') : t('transactions.type.SORTIE')}
                       </Badge>
                     </td>
                     <td className="px-4 py-3">
