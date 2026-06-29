@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, CreditCard, ArrowLeftRight, Tag,
-  PieChart, Bell, Landmark, LogOut, X,
+  PieChart, Bell, Landmark, LogOut, X, User, FileText,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useTranslation } from '@/contexts/LanguageContext'
@@ -25,6 +25,8 @@ export function Sidebar({ alertesNonLues = 0, onClose }: SidebarProps) {
     { href: '/categories',   label: t('nav.categories'),   icon: Tag },
     { href: '/budgets',      label: t('nav.budgets'),      icon: PieChart },
     { href: '/alertes',      label: t('nav.alerts'),       icon: Bell },
+    { href: '/rapports',     label: t('nav.reports'),      icon: FileText },
+    { href: '/profil',       label: t('nav.profile'),      icon: User },
   ]
 
   const initial = utilisateur?.nom?.charAt(0)?.toUpperCase() ?? '?'

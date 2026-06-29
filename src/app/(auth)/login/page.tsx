@@ -26,7 +26,8 @@ export default function LoginPage() {
       const data = await auth.connecter(email, motDePasse)
       localStorage.setItem('token', data.token)
       localStorage.setItem('utilisateur', JSON.stringify(data.utilisateur))
-      router.push('/dashboard')
+      const payload = JSON.parse(atob(data.token.split('.')[1])) as { role?: string }
+      router.push(payload.role === 'ADMIN' ? '/admin' : '/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : t('auth.login.error'))
     } finally {

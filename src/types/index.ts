@@ -29,7 +29,7 @@ export interface Transaction {
   compteId: string
   categorieId?: string
   montant: number
-  type: 'ENTREE' | 'SORTIE'
+  type: 'ENTREE' | 'DEPENSE' | 'SORTIE'
   sourcePaiement: string
   description?: string
   dateTransaction: string

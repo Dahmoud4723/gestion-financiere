@@ -1,11 +1,18 @@
 "use client"
-import { useEffect, useState, useCallback, startTransition } from 'react'
+import { useEffect, useState, useCallback, startTransition, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
 import { Toaster } from '@/components/ui/toaster'
+import { toast } from '@/components/ui/use-toast'
 import { alertes as alertesApi } from '@/lib/api'
 import { useTranslation } from '@/contexts/LanguageContext'
+
+interface SsePayload {
+  count?: number
+  type?: string
+  alerteType?: string
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -14,14 +21,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [alertesNonLues, setAlertesNonLues] = useState(0)
   const [authChecked, setAuthChecked] = useState(false)
+  const prevCountRef = useRef<number | null>(null)
 
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (!token) {
       router.replace('/login')
-    } else {
-      startTransition(() => setAuthChecked(true))
+      return
     }
+    try {
+      const parts = token.split('.')
+      if (parts.length !== 3) throw new Error('format invalide')
+      JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+    } catch {
+      localStorage.removeItem('token')
+      localStorage.removeItem('utilisateur')
+      router.replace('/login')
+      return
+    }
+    startTransition(() => setAuthChecked(true))
   }, [router])
 
   useEffect(() => {
@@ -45,6 +63,80 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (authChecked) { void loadAlertes() }
   }, [authChecked, pathname, loadAlertes])
 
+  // SSE : notifications temps réel des alertes budget
+  useEffect(() => {
+    if (!authChecked) return
+
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    const es = new EventSource(
+      `http://localhost:3001/api/alertes/stream?token=${encodeURIComponent(token)}`
+    )
+
+    const handleMessage = (event: MessageEvent) => {
+      let payload: SsePayload
+      try {
+        payload = JSON.parse(event.data as string) as SsePayload
+      } catch {
+        return
+      }
+
+      const count = payload.count ?? null
+      const alerteType = payload.type ?? payload.alerteType ?? null
+
+      if (count !== null) {
+        startTransition(() => setAlertesNonLues(count))
+
+        // Ignorer le premier message (initialisation), toaster uniquement si le count monte
+        if (prevCountRef.current !== null && count > prevCountRef.current) {
+          if (alerteType === 'BUDGET_DEPASSE') {
+            toast({ title: '⛔ Budget dépassé !', type: 'error' })
+          } else {
+            // BUDGET_80 ou toute autre hausse non typée
+            toast({ title: '⚠️ Budget à 80% atteint !', type: 'warning' })
+          }
+        }
+
+        prevCountRef.current = count
+      }
+    }
+
+    es.onmessage = handleMessage
+
+    // Certains backends envoient des événements typés (event: BUDGET_80 / BUDGET_DEPASSE)
+    // On écoute les deux pour être compatible avec les deux formats SSE
+    es.addEventListener('BUDGET_80', (e) => {
+      let payload: SsePayload = {}
+      try { payload = JSON.parse((e as MessageEvent).data as string) as SsePayload } catch { /**/ }
+      const count = payload.count ?? null
+      if (count !== null) {
+        startTransition(() => setAlertesNonLues(count))
+        if (prevCountRef.current !== null && count > prevCountRef.current) {
+          toast({ title: '⚠️ Budget à 80% atteint !', type: 'warning' })
+        }
+        prevCountRef.current = count
+      }
+    })
+
+    es.addEventListener('BUDGET_DEPASSE', (e) => {
+      let payload: SsePayload = {}
+      try { payload = JSON.parse((e as MessageEvent).data as string) as SsePayload } catch { /**/ }
+      const count = payload.count ?? null
+      if (count !== null) {
+        startTransition(() => setAlertesNonLues(count))
+        if (prevCountRef.current !== null && count > prevCountRef.current) {
+          toast({ title: '⛔ Budget dépassé !', type: 'error' })
+        }
+        prevCountRef.current = count
+      }
+    })
+
+    es.onerror = () => { es.close() }
+
+    return () => { es.close() }
+  }, [authChecked])
+
   if (!authChecked) {
     return (
       <div className="flex h-screen items-center justify-center" style={{ background: '#06091b' }}>
@@ -60,6 +152,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     '/categories': t('page.categories'),
     '/budgets': t('page.budgets'),
     '/alertes': t('page.alerts'),
+    '/rapports': t('page.reports'),
+    '/profil': t('page.profile'),
   }
 
   const title = pageTitles[pathname] ?? t('app.name')

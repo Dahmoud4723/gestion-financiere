@@ -12,11 +12,20 @@ import { toast } from '@/components/ui/use-toast'
 import { useTranslation } from '@/contexts/LanguageContext'
 import type { Alerte } from '@/types'
 
-const typeVariants: Record<string, 'destructive' | 'warning' | 'primary' | 'default'> = {
+const TYPE_VARIANTS: Record<string, 'destructive' | 'warning' | 'primary' | 'default'> = {
+  BUDGET_80:      'warning',
   BUDGET_DEPASSE: 'destructive',
-  BUDGET_PROCHE: 'warning',
-  SOLDE_FAIBLE: 'warning',
-  INFO: 'primary',
+  BUDGET_PROCHE:  'warning',
+  SOLDE_FAIBLE:   'warning',
+  INFO:           'primary',
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  BUDGET_80:      '⚠️ Attention',
+  BUDGET_DEPASSE: '⛔ Budget dépassé',
+  BUDGET_PROCHE:  '⚠️ Budget proche',
+  SOLDE_FAIBLE:   '⚠️ Solde faible',
+  INFO:           'ℹ️ Info',
 }
 
 export default function AlertesPage() {
@@ -125,14 +134,14 @@ export default function AlertesPage() {
             >
               <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
                 alerte.type === 'BUDGET_DEPASSE' ? 'bg-red-900/50' :
-                alerte.type === 'BUDGET_PROCHE' || alerte.type === 'SOLDE_FAIBLE' ? 'bg-amber-900/50' :
+                alerte.type === 'BUDGET_80' || alerte.type === 'BUDGET_PROCHE' || alerte.type === 'SOLDE_FAIBLE' ? 'bg-amber-900/50' :
                 'bg-blue-900/50'
               }`}>
                 {alerte.lue
                   ? <BellOff className="h-5 w-5 text-slate-400" />
                   : <Bell className={`h-5 w-5 ${
                       alerte.type === 'BUDGET_DEPASSE' ? 'text-red-400' :
-                      alerte.type === 'BUDGET_PROCHE' || alerte.type === 'SOLDE_FAIBLE' ? 'text-amber-400' :
+                      alerte.type === 'BUDGET_80' || alerte.type === 'BUDGET_PROCHE' || alerte.type === 'SOLDE_FAIBLE' ? 'text-amber-400' :
                       'text-blue-400'
                     }`} />
                 }
@@ -140,8 +149,8 @@ export default function AlertesPage() {
 
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <Badge variant={typeVariants[alerte.type] ?? 'default'}>
-                    {t(`alerts.type.${alerte.type}` as Parameters<typeof t>[0]) || alerte.type}
+                  <Badge variant={TYPE_VARIANTS[alerte.type] ?? 'default'}>
+                    {TYPE_LABELS[alerte.type] ?? alerte.type}
                   </Badge>
                   {!alerte.lue && (
                     <span className="h-2 w-2 rounded-full bg-blue-400" />

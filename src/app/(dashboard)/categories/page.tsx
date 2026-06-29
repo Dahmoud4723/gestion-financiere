@@ -177,8 +177,26 @@ export default function CategoriesPage() {
     }
   }
 
-  const entrees = (categories ?? []).filter((c: Categorie) => c.type === 'ENTREE')
-  const sorties = (categories ?? []).filter((c: Categorie) => c.type === 'SORTIE')
+  // Groupement dynamique : tous les types retournés par l'API sont affichés
+  const grouped = new Map<string, Categorie[]>()
+  for (const cat of (categories ?? [])) {
+    grouped.set(cat.type, [...(grouped.get(cat.type) ?? []), cat])
+  }
+  // ENTREE en premier, SORTIE en second, autres types ensuite
+  const orderedTypes = [
+    ...(grouped.has('ENTREE') ? ['ENTREE'] : []),
+    ...(grouped.has('SORTIE') ? ['SORTIE'] : []),
+    ...[...grouped.keys()].filter(k => k !== 'ENTREE' && k !== 'SORTIE'),
+  ]
+  const showHeaders = orderedTypes.length > 1
+
+  const getSectionLabel = (type: string, count: number) => {
+    if (type === 'ENTREE') return t('categories.income_section', count)
+    if (type === 'SORTIE') return t('categories.expenses_section', count)
+    return `${type} (${count})`
+  }
+
+  const CARD_GRID = 'grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3'
 
   return (
     <div className="space-y-6">
@@ -206,32 +224,26 @@ export default function CategoriesPage() {
             </Button>
           }
         />
-      ) : (
+      ) : showHeaders ? (
         <div className="space-y-6">
-          {entrees.length > 0 && (
-            <div>
+          {orderedTypes.map(type => (
+            <div key={type}>
               <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">
-                {t('categories.income_section', entrees.length)}
+                {getSectionLabel(type, grouped.get(type)!.length)}
               </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-                {entrees.map((cat: Categorie) => (
+              <div className={CARD_GRID}>
+                {grouped.get(type)!.map((cat: Categorie) => (
                   <CategoryCard key={cat.id} cat={cat} onDelete={handleDelete} deleting={deleting} />
                 ))}
               </div>
             </div>
-          )}
-          {sorties.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">
-                {t('categories.expenses_section', sorties.length)}
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-                {sorties.map((cat: Categorie) => (
-                  <CategoryCard key={cat.id} cat={cat} onDelete={handleDelete} deleting={deleting} />
-                ))}
-              </div>
-            </div>
-          )}
+          ))}
+        </div>
+      ) : (
+        <div className={CARD_GRID}>
+          {(categories ?? []).map((cat: Categorie) => (
+            <CategoryCard key={cat.id} cat={cat} onDelete={handleDelete} deleting={deleting} />
+          ))}
         </div>
       )}
 

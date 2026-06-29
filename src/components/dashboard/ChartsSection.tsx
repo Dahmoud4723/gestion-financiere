@@ -1,7 +1,7 @@
 "use client"
 import { useMemo } from 'react'
 import {
-    LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+    AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
 import { TrendingUp, PieChart as PieChartIcon, BarChart3 } from 'lucide-react'
@@ -58,10 +58,16 @@ export function ChartsSection({ transactions, comptes }: ChartsSectionProps) {
             })
         }
 
-        const soldeInitial = comptes.reduce((s, c) => s + (c.soldeActuel ?? 0), 0) -
-            transactions.reduce((s, tx) => s + (tx.type === 'ENTREE' ? tx.montant : -tx.montant), 0)
+        // Start from account initial balances (avoids negative start from reverse-calculation issues)
+        const soldeInitial = comptes.reduce((s, c) => s + (c.soldeInitial ?? 0), 0)
 
-        let runningSolde = soldeInitial
+        // Add net effect of all transactions before the chart window
+        const firstKey = months[0].key
+        const preChartNet = transactions
+            .filter(tx => tx.dateTransaction < firstKey)
+            .reduce((s, tx) => s + (tx.type === 'ENTREE' ? tx.montant : -tx.montant), 0)
+
+        let runningSolde = soldeInitial + preChartNet
         return months.map(({ key, label }) => {
             const txDuMois = transactions.filter(tx => tx.dateTransaction?.startsWith(key))
             const net = txDuMois.reduce((s, tx) => s + (tx.type === 'ENTREE' ? tx.montant : -tx.montant), 0)
@@ -75,7 +81,7 @@ export function ChartsSection({ transactions, comptes }: ChartsSectionProps) {
         const now = new Date()
         const moisActuel = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
         const depensesMois = transactions.filter(
-            tx => tx.type === 'SORTIE' && tx.dateTransaction?.startsWith(moisActuel)
+            tx => tx.type === 'DEPENSE' && tx.dateTransaction?.startsWith(moisActuel)
         )
         const parCategorie = new Map<string, number>()
         depensesMois.forEach(tx => {
@@ -102,7 +108,7 @@ export function ChartsSection({ transactions, comptes }: ChartsSectionProps) {
         return months.map(({ key, label }) => {
             const txDuMois = transactions.filter(tx => tx.dateTransaction?.startsWith(key))
             const revenus = txDuMois.filter(tx => tx.type === 'ENTREE').reduce((s, tx) => s + tx.montant, 0)
-            const depenses = txDuMois.filter(tx => tx.type === 'SORTIE').reduce((s, tx) => s + tx.montant, 0)
+            const depenses = txDuMois.filter(tx => tx.type === 'DEPENSE').reduce((s, tx) => s + tx.montant, 0)
             return { mois: label, revenus: Math.round(revenus), depenses: Math.round(depenses) }
         })
     }, [transactions])

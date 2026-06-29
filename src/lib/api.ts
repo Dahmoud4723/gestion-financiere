@@ -20,15 +20,20 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers })
 
   if (res.status === 401) {
+    // LOG pour debug : voir précisément quelle route renvoie 401 et pourquoi
     const body = await res.json().catch(() => null)
     console.error(`[401] ${path} →`, body)
 
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token')
       localStorage.removeItem('utilisateur')
+      // ─── FIX boucle infinie ───
+      // Avant : chaque requête 401 émettait l'event → 4 requêtes en parallèle = 4 redirections
+      // Après : un seul événement, même si plusieurs requêtes échouent en même temps
       if (!authExpiredFired) {
         authExpiredFired = true
         window.dispatchEvent(new Event('auth:expired'))
+        // reset après un court délai pour permettre une future expiration de session
         setTimeout(() => { authExpiredFired = false }, 2000)
       }
     }
@@ -81,6 +86,13 @@ export const comptes = {
     api<Compte>(`/api/comptes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   supprimer: (id: string) =>
     api<void>(`/api/comptes/${id}`, { method: 'DELETE' }),
+  virement: (data: {
+    compteSourceId: string
+    compteDestinationId: string
+    montant: number
+    description?: string
+    dateTransaction: string
+  }) => api<void>('/api/comptes/virement', { method: 'POST', body: JSON.stringify(data) }),
 }
 
 export const transactions = {
@@ -117,4 +129,64 @@ export const alertes = {
     api<Alerte>(`/api/alertes/${id}`, { method: 'PUT', body: JSON.stringify({ lue: true }) }),
   supprimer: (id: string) =>
     api<void>(`/api/alertes/${id}`, { method: 'DELETE' }),
+}
+
+export interface ProfilData {
+  id: string
+  nom: string
+  email: string
+  role: string
+  organisationId: string
+  creeLe: string
+}
+
+export const profil = {
+  obtenir: () => api<ProfilData>('/api/profil'),
+  modifier: (data: { nom?: string; email?: string }) =>
+    api<ProfilData>('/api/profil', { method: 'PUT', body: JSON.stringify(data) }),
+  changerMotDePasse: (data: { ancienMotDePasse: string; nouveauMotDePasse: string }) =>
+    api<void>('/api/profil/mot-de-passe', { method: 'PUT', body: JSON.stringify(data) }),
+}
+
+export const rapports = {
+  telechargerPDF: async (mois?: number, annee?: number) => {
+    const token = getToken()
+    const params = new URLSearchParams()
+    if (mois) params.set('mois', String(mois))
+    if (annee) params.set('annee', String(annee))
+
+    const res = await fetch(`${BASE_URL}/api/rapports/pdf?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    if (!res.ok) throw new Error('Erreur lors de la génération du PDF')
+
+    const blob = await res.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `rapport-${mois ?? new Date().getMonth() + 1}-${annee ?? new Date().getFullYear()}.pdf`
+    a.click()
+    window.URL.revokeObjectURL(url)
+  },
+  telechargerExcel: async (mois?: number, annee?: number) => {
+    const token = getToken()
+    const params = new URLSearchParams()
+    if (mois) params.set('mois', String(mois))
+    if (annee) params.set('annee', String(annee))
+
+    const res = await fetch(`${BASE_URL}/api/rapports/excel?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    if (!res.ok) throw new Error('Erreur lors de la génération du Excel')
+
+    const blob = await res.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `rapport-${mois ?? new Date().getMonth() + 1}-${annee ?? new Date().getFullYear()}.xlsx`
+    a.click()
+    window.URL.revokeObjectURL(url)
+  },
 }

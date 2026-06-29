@@ -193,13 +193,13 @@ export default function BudgetsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {budgets.map((budget: Budget) => {
             const pct = Math.min(budget.pourcentage ?? 0, 100)
-            const barColor = pct >= 90
+            const barColor = budget.pourcentage >= 100
               ? '!bg-gradient-to-r !from-red-600 !to-rose-500'
-              : pct >= 70
+              : pct >= 80
               ? '!bg-gradient-to-r !from-amber-500 !to-orange-500'
               : '!bg-gradient-to-r !from-emerald-500 !to-teal-500'
-            const badgeV = pct >= 90 ? 'destructive' : pct >= 70 ? 'warning' : 'success'
-            const badgeLabel = pct >= 90 ? t('budgets.status.exceeded') : pct >= 70 ? t('budgets.status.warning') : t('budgets.status.ok')
+            const badgeV = budget.pourcentage >= 100 ? 'destructive' : pct >= 80 ? 'warning' : 'success'
+            const badgeLabel = budget.pourcentage >= 100 ? t('budgets.status.exceeded') : pct >= 80 ? t('budgets.status.warning') : t('budgets.status.ok')
 
             return (
               <div key={budget.id} className="card p-6 space-y-4">

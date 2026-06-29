@@ -13,6 +13,8 @@ const fr = {
   'nav.budgets': 'Budgets',
   'nav.alerts': 'Alertes',
   'nav.logout': 'Se déconnecter',
+  'nav.profile': 'Profil',
+  'nav.reports': 'Rapports',
   'nav.financiere': 'Financière',
   'nav.gestion': 'Gestion',
 
@@ -184,6 +186,8 @@ const fr = {
   'page.categories': 'Catégories',
   'page.budgets': 'Budgets',
   'page.alerts': 'Alertes',
+  'page.profile': 'Profil',
+  'page.reports': 'Rapports',
 } as const
 
 const ar = {
@@ -199,6 +203,8 @@ const ar = {
   'nav.budgets': 'الميزانيات',
   'nav.alerts': 'التنبيهات',
   'nav.logout': 'تسجيل الخروج',
+  'nav.profile': 'الملف الشخصي',
+  'nav.reports': 'التقارير',
   'nav.financiere': 'الأموال',
   'nav.gestion': 'إدارة',
 
@@ -370,6 +376,8 @@ const ar = {
   'page.categories': 'الفئات',
   'page.budgets': 'الميزانيات',
   'page.alerts': 'التنبيهات',
+  'page.profile': 'الملف الشخصي',
+  'page.reports': 'التقارير',
 } as const
 
 export type TranslationKey = keyof typeof fr
