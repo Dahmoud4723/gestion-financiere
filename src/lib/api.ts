@@ -1,7 +1,8 @@
 import type { Compte, Transaction, Categorie, Budget, Alerte, Organisation, AuthResponse } from '@/types'
 
-// const BASE_URL = ''
 const BASE_URL = 'http://localhost:3001'
+
+let authExpiredFired = false
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null
@@ -19,12 +20,19 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers })
 
   if (res.status === 401) {
+    const body = await res.json().catch(() => null)
+    console.error(`[401] ${path} →`, body)
+
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token')
       localStorage.removeItem('utilisateur')
-      window.dispatchEvent(new Event('auth:expired'))
+      if (!authExpiredFired) {
+        authExpiredFired = true
+        window.dispatchEvent(new Event('auth:expired'))
+        setTimeout(() => { authExpiredFired = false }, 2000)
+      }
     }
-    throw new Error('Non autorisé')
+    throw new Error(body?.message || 'Non autorisé')
   }
 
   if (!res.ok) {
@@ -73,6 +81,13 @@ export const comptes = {
     api<Compte>(`/api/comptes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   supprimer: (id: string) =>
     api<void>(`/api/comptes/${id}`, { method: 'DELETE' }),
+  virement: (data: {
+    compteSourceId: string
+    compteDestinationId: string
+    montant: number
+    description?: string
+    dateTransaction: string
+  }) => api<void>('/api/comptes/virement', { method: 'POST', body: JSON.stringify(data) }),
 }
 
 export const transactions = {
@@ -109,4 +124,64 @@ export const alertes = {
     api<Alerte>(`/api/alertes/${id}`, { method: 'PUT', body: JSON.stringify({ lue: true }) }),
   supprimer: (id: string) =>
     api<void>(`/api/alertes/${id}`, { method: 'DELETE' }),
+}
+
+export interface ProfilData {
+  id: string
+  nom: string
+  email: string
+  role: string
+  organisationId: string
+  creeLe: string
+}
+
+export const profil = {
+  obtenir: () => api<ProfilData>('/api/profil'),
+  modifier: (data: { nom?: string; email?: string }) =>
+    api<ProfilData>('/api/profil', { method: 'PUT', body: JSON.stringify(data) }),
+  changerMotDePasse: (data: { ancienMotDePasse: string; nouveauMotDePasse: string }) =>
+    api<void>('/api/profil/mot-de-passe', { method: 'PUT', body: JSON.stringify(data) }),
+}
+
+export const rapports = {
+  telechargerPDF: async (mois?: number, annee?: number) => {
+    const token = getToken()
+    const params = new URLSearchParams()
+    if (mois) params.set('mois', String(mois))
+    if (annee) params.set('annee', String(annee))
+
+    const res = await fetch(`${BASE_URL}/api/rapports/pdf?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    if (!res.ok) throw new Error('Erreur lors de la génération du PDF')
+
+    const blob = await res.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `rapport-${mois ?? new Date().getMonth() + 1}-${annee ?? new Date().getFullYear()}.pdf`
+    a.click()
+    window.URL.revokeObjectURL(url)
+  },
+  telechargerExcel: async (mois?: number, annee?: number) => {
+    const token = getToken()
+    const params = new URLSearchParams()
+    if (mois) params.set('mois', String(mois))
+    if (annee) params.set('annee', String(annee))
+
+    const res = await fetch(`${BASE_URL}/api/rapports/excel?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    if (!res.ok) throw new Error('Erreur lors de la génération du Excel')
+
+    const blob = await res.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `rapport-${mois ?? new Date().getMonth() + 1}-${annee ?? new Date().getFullYear()}.xlsx`
+    a.click()
+    window.URL.revokeObjectURL(url)
+  },
 }

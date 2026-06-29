@@ -9,23 +9,27 @@ import { Badge } from '@/components/ui/badge'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { toast } from '@/components/ui/use-toast'
+import { useTranslation } from '@/contexts/LanguageContext'
 import type { Alerte } from '@/types'
 
-const typeLabels: Record<string, string> = {
-  BUDGET_DEPASSE: 'Budget dépassé',
-  BUDGET_PROCHE: 'Budget proche',
-  SOLDE_FAIBLE: 'Solde faible',
-  INFO: 'Information',
+const TYPE_VARIANTS: Record<string, 'destructive' | 'warning' | 'primary' | 'default'> = {
+  BUDGET_80:      'warning',
+  BUDGET_DEPASSE: 'destructive',
+  BUDGET_PROCHE:  'warning',
+  SOLDE_FAIBLE:   'warning',
+  INFO:           'primary',
 }
 
-const typeVariants: Record<string, 'destructive' | 'warning' | 'primary' | 'default'> = {
-  BUDGET_DEPASSE: 'destructive',
-  BUDGET_PROCHE: 'warning',
-  SOLDE_FAIBLE: 'warning',
-  INFO: 'primary',
+const TYPE_LABELS: Record<string, string> = {
+  BUDGET_80:      '⚠️ Attention',
+  BUDGET_DEPASSE: '⛔ Budget dépassé',
+  BUDGET_PROCHE:  '⚠️ Budget proche',
+  SOLDE_FAIBLE:   '⚠️ Solde faible',
+  INFO:           'ℹ️ Info',
 }
 
 export default function AlertesPage() {
+  const { t } = useTranslation()
   const { data: alertes, loading, refetch } = useApi(() => alertesApi.lister())
   const [filter, setFilter] = useState<'TOUTES' | 'NON_LUES'>('TOUTES')
   const [processing, setProcessing] = useState<string | null>(null)
@@ -34,24 +38,24 @@ export default function AlertesPage() {
     setProcessing(id)
     try {
       await alertesApi.marquerLue(id)
-      toast({ title: 'Alerte marquée comme lue', type: 'success' })
+      toast({ title: t('alerts.marked_read_toast'), type: 'success' })
       refetch()
     } catch (err) {
-      toast({ title: 'Erreur', description: err instanceof Error ? err.message : 'Erreur', type: 'error' })
+      toast({ title: t('common.error'), description: err instanceof Error ? err.message : t('common.unknown_error'), type: 'error' })
     } finally {
       setProcessing(null)
     }
   }
 
   const handleSupprimer = async (id: string) => {
-    if (!confirm('Supprimer cette alerte ?')) return
+    if (!confirm(t('alerts.delete_confirm'))) return
     setProcessing(id)
     try {
       await alertesApi.supprimer(id)
-      toast({ title: 'Alerte supprimée', type: 'success' })
+      toast({ title: t('alerts.deleted_toast'), type: 'success' })
       refetch()
     } catch (err) {
-      toast({ title: 'Erreur', description: err instanceof Error ? err.message : 'Erreur', type: 'error' })
+      toast({ title: t('common.error'), description: err instanceof Error ? err.message : t('common.unknown_error'), type: 'error' })
     } finally {
       setProcessing(null)
     }
@@ -62,7 +66,7 @@ export default function AlertesPage() {
     for (const a of nonLues) {
       try { await alertesApi.marquerLue(a.id) } catch { /* continue */ }
     }
-    toast({ title: 'Toutes les alertes ont été marquées comme lues', type: 'success' })
+    toast({ title: t('alerts.all_read_toast'), type: 'success' })
     refetch()
   }
 
@@ -76,15 +80,15 @@ export default function AlertesPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-slate-100">Alertes</h2>
+          <h2 className="text-2xl font-bold gradient-text">{t('alerts.title')}</h2>
           <p className="text-slate-400 text-sm mt-1">
-            {nonLuesCount} alerte(s) non lue(s) · {alertes?.length ?? 0} au total
+            {t('alerts.count', nonLuesCount, alertes?.length ?? 0)}
           </p>
         </div>
         {nonLuesCount > 0 && (
           <Button variant="outline" onClick={handleMarquerToutesLues}>
             <CheckCheck className="h-4 w-4" />
-            Tout marquer comme lu
+            {t('alerts.mark_all_read')}
           </Button>
         )}
       </div>
@@ -101,7 +105,7 @@ export default function AlertesPage() {
                 : 'border-slate-600 text-slate-400 hover:border-slate-500 hover:text-slate-300'
             }`}
           >
-            {f === 'TOUTES' ? 'Toutes' : 'Non lues'}
+            {f === 'TOUTES' ? t('alerts.filter_all') : t('alerts.filter_unread')}
             {f === 'NON_LUES' && nonLuesCount > 0 && (
               <span className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
                 {nonLuesCount}
@@ -116,30 +120,28 @@ export default function AlertesPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Bell}
-          title="Aucune alerte"
-          description={filter === 'NON_LUES' ? 'Toutes vos alertes ont été lues' : 'Vous n\'avez aucune alerte'}
+          title={t('alerts.empty_title')}
+          description={filter === 'NON_LUES' ? t('alerts.empty_unread') : t('alerts.empty_all')}
         />
       ) : (
         <div className="space-y-3">
           {filtered.map((alerte: Alerte) => (
             <div
               key={alerte.id}
-              className={`rounded-xl border p-5 flex items-start gap-4 transition-colors ${
-                alerte.lue
-                  ? 'border-slate-700 bg-[#1E293B] opacity-60'
-                  : 'border-slate-600 bg-[#1E293B]'
+              className={`card p-5 flex items-start gap-4 transition-all ${
+                alerte.lue ? 'opacity-50' : ''
               }`}
             >
               <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
                 alerte.type === 'BUDGET_DEPASSE' ? 'bg-red-900/50' :
-                alerte.type === 'BUDGET_PROCHE' || alerte.type === 'SOLDE_FAIBLE' ? 'bg-amber-900/50' :
+                alerte.type === 'BUDGET_80' || alerte.type === 'BUDGET_PROCHE' || alerte.type === 'SOLDE_FAIBLE' ? 'bg-amber-900/50' :
                 'bg-blue-900/50'
               }`}>
                 {alerte.lue
                   ? <BellOff className="h-5 w-5 text-slate-400" />
                   : <Bell className={`h-5 w-5 ${
                       alerte.type === 'BUDGET_DEPASSE' ? 'text-red-400' :
-                      alerte.type === 'BUDGET_PROCHE' || alerte.type === 'SOLDE_FAIBLE' ? 'text-amber-400' :
+                      alerte.type === 'BUDGET_80' || alerte.type === 'BUDGET_PROCHE' || alerte.type === 'SOLDE_FAIBLE' ? 'text-amber-400' :
                       'text-blue-400'
                     }`} />
                 }
@@ -147,8 +149,8 @@ export default function AlertesPage() {
 
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <Badge variant={typeVariants[alerte.type] ?? 'default'}>
-                    {typeLabels[alerte.type] ?? alerte.type}
+                  <Badge variant={TYPE_VARIANTS[alerte.type] ?? 'default'}>
+                    {TYPE_LABELS[alerte.type] ?? alerte.type}
                   </Badge>
                   {!alerte.lue && (
                     <span className="h-2 w-2 rounded-full bg-blue-400" />
@@ -163,7 +165,7 @@ export default function AlertesPage() {
                   <button
                     onClick={() => handleMarquerLue(alerte.id)}
                     disabled={processing === alerte.id}
-                    title="Marquer comme lue"
+                    title={t('alerts.mark_read')}
                     className="p-2 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-slate-700 transition-colors disabled:opacity-50"
                   >
                     {processing === alerte.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCheck className="h-4 w-4" />}
@@ -172,7 +174,7 @@ export default function AlertesPage() {
                 <button
                   onClick={() => handleSupprimer(alerte.id)}
                   disabled={processing === alerte.id}
-                  title="Supprimer"
+                  title={t('common.delete')}
                   className="p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-slate-700 transition-colors disabled:opacity-50"
                 >
                   {processing === alerte.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}

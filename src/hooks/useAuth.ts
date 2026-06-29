@@ -1,20 +1,18 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import type { Utilisateur } from '@/types'
 
-export function useAuth() {
-  const [utilisateur, setUtilisateur] = useState<Utilisateur | null>(null)
-  const [loading, setLoading] = useState(true)
+function readUtilisateur(): Utilisateur | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const stored = localStorage.getItem('utilisateur')
+    if (stored) return JSON.parse(stored)
+  } catch {}
+  return null
+}
 
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('utilisateur')
-      if (stored) setUtilisateur(JSON.parse(stored))
-    } catch {
-      // ignore
-    }
-    setLoading(false)
-  }, [])
+export function useAuth() {
+  const [utilisateur] = useState<Utilisateur | null>(readUtilisateur)
 
   const logout = () => {
     localStorage.removeItem('token')
@@ -22,5 +20,5 @@ export function useAuth() {
     window.location.href = '/login'
   }
 
-  return { utilisateur, loading, logout }
+  return { utilisateur, logout }
 }
