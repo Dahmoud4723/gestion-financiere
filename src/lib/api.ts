@@ -1,7 +1,6 @@
 import type { Compte, Transaction, Categorie, Budget, Alerte, Organisation, AuthResponse } from '@/types'
 
 const BASE_URL = 'http://localhost:3001'
-
 let authExpiredFired = false
 
 function getToken(): string | null {

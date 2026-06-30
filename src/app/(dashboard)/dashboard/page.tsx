@@ -133,10 +133,10 @@ export default function DashboardPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard title={t('dashboard.total_accounts')} value={formatMontant(totalSolde)} icon={TrendingUp} />
-        <StatCard title={t('dashboard.monthly_income')} value={formatMontant(revenus)} icon={ArrowDownLeft} iconColor="text-emerald-400" iconBg="bg-emerald-900/40" />
-        <StatCard title={t('dashboard.monthly_expenses')} value={formatMontant(depenses)} icon={ArrowUpRight} iconColor="text-red-400" iconBg="bg-red-900/40" />
-        <StatCard title={t('dashboard.active_alerts')} value={String(alertesNonLues)} icon={Bell} iconColor="text-amber-400" iconBg="bg-amber-900/40" />
+        <StatCard title={t('dashboard.total_accounts')} value={formatMontant(totalSolde)} icon={TrendingUp} color="blue" />
+        <StatCard title={t('dashboard.monthly_income')} value={formatMontant(revenus)} icon={ArrowDownLeft} color="green" />
+        <StatCard title={t('dashboard.monthly_expenses')} value={formatMontant(depenses)} icon={ArrowUpRight} color="red" />
+        <StatCard title={t('dashboard.active_alerts')} value={String(alertesNonLues)} icon={Bell} color="amber" />
       </div>
 
       {/* Graphiques analytiques */}
@@ -185,10 +185,10 @@ export default function DashboardPage() {
               {dernieresTransactions.map((tx) => (
                 <li key={tx.id} className="flex items-center gap-3 group rounded-xl p-2 -mx-2 hover:bg-white/[0.03] transition-colors">
                   <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${tx.type === 'ENTREE'
-                      ? 'bg-emerald-500/10 border-emerald-500/20'
-                      : tx.type === 'SORTIE'
-                        ? 'bg-blue-500/10 border-blue-500/20'
-                        : 'bg-red-500/10 border-red-500/20'
+                    ? 'bg-emerald-500/10 border-emerald-500/20'
+                    : tx.type === 'SORTIE'
+                      ? 'bg-blue-500/10 border-blue-500/20'
+                      : 'bg-red-500/10 border-red-500/20'
                     }`}>
                     {tx.type === 'ENTREE'
                       ? <ArrowDownLeft className="h-4 w-4 text-emerald-400" />
