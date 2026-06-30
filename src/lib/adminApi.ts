@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:3001'
+const BASE_URL = 'https://gestion-financiere-api-production.up.railway.app'
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null

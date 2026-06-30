@@ -537,7 +537,7 @@ function TransactionsSection({ data }: { data: RapportTransaction[] }) {
 async function fetchRapport(mois: string): Promise<RapportMensuel> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
   const res = await fetch(
-    `http://localhost:3001/api/rapports/mensuel?mois=${mois}`,
+    `https://gestion-financiere-api-production.up.railway.app/api/rapports/mensuel?mois=${mois}`,
     { headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) } }
   )
   if (!res.ok) {

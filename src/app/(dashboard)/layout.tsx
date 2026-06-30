@@ -71,7 +71,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!token) return
 
     const es = new EventSource(
-      `http://localhost:3001/api/alertes/stream?token=${encodeURIComponent(token)}`
+      `https://gestion-financiere-api-production.up.railway.app/api/alertes/stream?token=${encodeURIComponent(token)}`
     )
 
     const handleMessage = (event: MessageEvent) => {

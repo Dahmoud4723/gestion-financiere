@@ -27,7 +27,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-    fetch('http://localhost:3001/api/transactions/prevision', {
+    fetch('https://gestion-financiere-api-production.up.railway.app/api/transactions/prevision', {
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

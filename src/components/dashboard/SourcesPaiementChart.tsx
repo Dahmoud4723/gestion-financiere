@@ -66,7 +66,7 @@ export function SourcesPaiementChart() {
 
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
-    fetch('http://localhost:3001/api/transactions/stats/sources', {
+    fetch('https://gestion-financiere-api-production.up.railway.app/api/transactions/stats/sources', {
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
